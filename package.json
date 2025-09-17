@@ -1,0 +1,14 @@
+{
+  "name": "worker-threads",
+  "packageManager": "yarn@4.2.2",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "piscina": "^5.1.3"
+  }
+}
