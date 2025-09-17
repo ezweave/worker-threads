@@ -41,8 +41,8 @@ export interface WorkerMessage {
   total?: number | string;
 }
 
-export interface OrchestratorMessage {
-  type: OrchestratorMessageType;
+export interface MainThreadMessage {
+  type: MainThreadMessageType;
   data?: Person;
   message?: string;
   totalToBeProcessed?: number;
@@ -63,7 +63,7 @@ export enum WorkerMessageType {
   PROGRESS = "progress",
 }
 
-export enum OrchestratorMessageType {
+export enum MainThreadMessageType {
   DONE = "done",
   PROCESS = "process",
 }

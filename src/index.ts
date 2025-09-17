@@ -4,7 +4,7 @@ import { Worker } from "worker_threads";
 import path from "path";
 import { fileURLToPath } from "url";
 // This is a workaround to use the types file in the worker.
-import { OrchestratorMessageType, Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "./types.js";
+import { MainThreadMessageType, Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,13 +47,13 @@ const runJob = async (numberOfPeople: number): Promise<ProcessedPerson[]> => {
               console.log(`Fetched person ${i}: ${person.name}`);
 
               console.log(`Sending person ${i} to worker...`);
-              worker.postMessage({ type: OrchestratorMessageType.PROCESS, data: person, totalToBeProcessed: numberOfPeople });
+              worker.postMessage({ type: MainThreadMessageType.PROCESS, data: person, totalToBeProcessed: numberOfPeople });
             }).catch((error) => {
               console.log(`Failed to fetch person ${i}:`, (error as Error).message);
             }).finally(() => {
               if (i === numberOfPeople) {
                 console.log("Sending done signal to worker...");
-                worker.postMessage({ type: OrchestratorMessageType.DONE });
+                worker.postMessage({ type: MainThreadMessageType.DONE });
               }
             });
           }

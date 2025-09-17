@@ -1,5 +1,5 @@
 import { parentPort } from "worker_threads";
-import { OrchestratorMessage, OrchestratorMessageType, Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "../types.js";
+import { MainThreadMessage, MainThreadMessageType, Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "../types.js";
 
 
 const processingDelayInMs = parseInt(process.env.PROCESSING_DELAY_IN_MS || "1000");
@@ -41,7 +41,7 @@ let awaitRemainingMessages: Promise<void>;
 let resolveRemainingMessages: () => void;
 
 // Listen for messages from the main thread
-parentPort?.on(WorkerEvent.MESSAGE, async (msg: OrchestratorMessage) => {
+parentPort?.on(WorkerEvent.MESSAGE, async (msg: MainThreadMessage) => {
   // Send log message to main thread
   parentPort?.postMessage({
     type: WorkerMessageType.LOG,
@@ -49,7 +49,7 @@ parentPort?.on(WorkerEvent.MESSAGE, async (msg: OrchestratorMessage) => {
     data: msg,
   });
   switch (msg.type) {
-    case OrchestratorMessageType.PROCESS:
+    case MainThreadMessageType.PROCESS:
       if (!awaitRemainingMessages) {
         awaitRemainingMessages = new Promise((resolve) => {
           resolveRemainingMessages = resolve;
@@ -78,7 +78,7 @@ parentPort?.on(WorkerEvent.MESSAGE, async (msg: OrchestratorMessage) => {
         resolveRemainingMessages();
       }
       break;
-    case OrchestratorMessageType.DONE:
+    case MainThreadMessageType.DONE:
       // The orchestrator is done sending us data, but we may not be done processing it all yet.
       await awaitRemainingMessages;
       parentPort?.postMessage({
