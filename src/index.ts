@@ -1,31 +1,32 @@
 import { Worker } from "worker_threads";
 import path from "path";
 import { fileURLToPath } from "url";
+import { Person, ProcessedPerson, WorkerMessage } from "./types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const getPersonFromSWAPI = async (personId) => {
+const getPersonFromSWAPI = async (personId: number): Promise<Person> => {
   const response = await fetch(`https://swapi.dev/api/people/${personId}`);
   const data = await response.json();
   return data;
 };
 
-const runJob = async (numberOfPeople) => {
+const runJob = async (numberOfPeople: number): Promise<ProcessedPerson[]> => {
   return new Promise((resolve, reject) => {
-    const results = [];
+    const results: ProcessedPerson[] = [];
     let processedCount = 0;
 
     // Create a worker
     const worker = new Worker(path.resolve(__dirname, "workers/worker-one.js"));
 
     // Handle messages from worker
-    worker.on("message", (msg) => {
+    worker.on("message", (msg: WorkerMessage) => {
       if (msg.type === "progress") {
         console.log(`Progress: ${msg.done}/${msg.total}`);
       } else if (msg.type === "result") {
-        console.log("Processed person:", msg.data.name);
-        results.push(msg.data);
+        console.log("Processed person:", (msg.data as ProcessedPerson).name);
+        results.push(msg.data as ProcessedPerson);
         processedCount++;
       } else if (msg.type === "log") {
         console.log(`[WORKER] ${msg.message}`, msg.data || "");
@@ -36,12 +37,12 @@ const runJob = async (numberOfPeople) => {
       }
     });
 
-    worker.on("error", (error) => {
+    worker.on("error", (error: Error) => {
       console.error("Worker error:", error);
       reject(error);
     });
 
-    worker.on("exit", (code) => {
+    worker.on("exit", (code: number) => {
       if (code !== 0) {
         console.error(`Worker stopped with exit code ${code}`);
         reject(new Error(`Worker stopped with exit code ${code}`));
@@ -61,7 +62,7 @@ const runJob = async (numberOfPeople) => {
           console.log(`Sending person ${i} to worker...`);
           worker.postMessage({ type: "process", data: person });
         } catch (error) {
-          console.log(`Failed to fetch person ${i}:`, error.message);
+          console.log(`Failed to fetch person ${i}:`, (error as Error).message);
         }
       }
 
