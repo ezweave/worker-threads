@@ -52,7 +52,7 @@ parentPort.on("message", async (msg) => {
     });
 
     // Process the person data
-    const processedPerson = processPerson(msg.data);
+    const processedPerson = await processPerson(msg.data);
     processedCount++;
 
     // Send the processed result back

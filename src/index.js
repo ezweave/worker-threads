@@ -57,13 +57,11 @@ const runJob = async (numberOfPeople) => {
     setTimeout(async () => {
       console.log("Worker started, beginning data processing...");
 
-      // Fetch people one by one and send them to the worker
       for (let i = 1; i <= numberOfPeople; i++) {
         try {
           const person = await getPersonFromSWAPI(i);
           console.log(`Fetched person ${i}: ${person.name}`);
 
-          // Send person data to worker for processing
           console.log(`Sending person ${i} to worker...`);
           worker.postMessage({ type: "process", data: person });
         } catch (error) {
@@ -71,7 +69,6 @@ const runJob = async (numberOfPeople) => {
         }
       }
 
-      // Signal that we're done sending data
       console.log("Sending done signal to worker...");
       worker.postMessage({ type: "done" });
     }, 100);
