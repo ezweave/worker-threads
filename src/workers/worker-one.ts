@@ -1,8 +1,17 @@
 import { parentPort } from "worker_threads";
-import { MainThreadMessage, MainThreadMessageType, Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "../types.js";
+import {
+  MainThreadMessage,
+  MainThreadMessageType,
+  Person,
+  ProcessedPerson,
+  WorkerEvent,
+  WorkerMessage,
+  WorkerMessageType,
+} from "../types.js";
 
-
-const processingDelayInMs = parseInt(process.env.PROCESSING_DELAY_IN_MS || "1000");
+const processingDelayInMs = parseInt(
+  process.env.PROCESSING_DELAY_IN_MS || "1000",
+);
 // Process individual person data
 const processPerson = async (person: Person): Promise<ProcessedPerson> =>
   new Promise((resolve) => {
@@ -13,13 +22,14 @@ const processPerson = async (person: Person): Promise<ProcessedPerson> =>
       bmi:
         person.mass && person.height
           ? (
-            parseInt(person.mass) / Math.pow(parseInt(person.height) / 100, 2)
-          ).toFixed(2)
+              parseInt(person.mass) / Math.pow(parseInt(person.height) / 100, 2)
+            ).toFixed(2)
           : null,
       filmCount: person.films ? person.films.length : 0,
       vehicleCount: person.vehicles ? person.vehicles.length : 0,
       starshipCount: person.starships ? person.starships.length : 0,
-      species: person.species && person.species[0] ? person.species[0] : "Unknown",
+      species:
+        person.species && person.species[0] ? person.species[0] : "Unknown",
       homeworld: person.homeworld,
       processedAt: new Date().toISOString(),
     };
@@ -83,7 +93,8 @@ parentPort?.on(WorkerEvent.MESSAGE, async (msg: MainThreadMessage) => {
       await awaitRemainingMessages;
       parentPort?.postMessage({
         type: WorkerMessageType.LOG,
-        message: "Worker received done signal, waiting for remaining messages...",
+        message:
+          "Worker received done signal, waiting for remaining messages...",
       });
       parentPort?.postMessage({
         type: WorkerMessageType.LOG,

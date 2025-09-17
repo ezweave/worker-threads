@@ -1,10 +1,16 @@
-
-import 'dotenv/config';
+import "dotenv/config";
 import { Worker } from "worker_threads";
 import path from "path";
 import { fileURLToPath } from "url";
 // This is a workaround to use the types file in the worker.
-import { MainThreadMessageType, Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "./types.js";
+import {
+  MainThreadMessageType,
+  Person,
+  ProcessedPerson,
+  WorkerEvent,
+  WorkerMessage,
+  WorkerMessageType,
+} from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +27,9 @@ const getPersonFromSWAPI = async (personId: number): Promise<Person> => {
   // Simulate long response times
   return new Promise((resolve) => {
     const delay = getRandomDelayInMs();
-    console.log(`Simulating long response time for person ${personId}... ${delay}ms`);
+    console.log(
+      `Simulating long response time for person ${personId}... ${delay}ms`,
+    );
     setTimeout(() => {
       resolve(data);
     }, delay);
@@ -43,19 +51,29 @@ const runJob = async (numberOfPeople: number): Promise<ProcessedPerson[]> => {
           console.log("Worker started, beginning data processing...");
 
           for (let i = 1; i <= numberOfPeople; i++) {
-            getPersonFromSWAPI(i).then((person) => {
-              console.log(`Fetched person ${i}: ${person.name}`);
+            getPersonFromSWAPI(i)
+              .then((person) => {
+                console.log(`Fetched person ${i}: ${person.name}`);
 
-              console.log(`Sending person ${i} to worker...`);
-              worker.postMessage({ type: MainThreadMessageType.PROCESS, data: person, totalToBeProcessed: numberOfPeople });
-            }).catch((error) => {
-              console.log(`Failed to fetch person ${i}:`, (error as Error).message);
-            }).finally(() => {
-              if (i === numberOfPeople) {
-                console.log("Sending done signal to worker...");
-                worker.postMessage({ type: MainThreadMessageType.DONE });
-              }
-            });
+                console.log(`Sending person ${i} to worker...`);
+                worker.postMessage({
+                  type: MainThreadMessageType.PROCESS,
+                  data: person,
+                  totalToBeProcessed: numberOfPeople,
+                });
+              })
+              .catch((error) => {
+                console.log(
+                  `Failed to fetch person ${i}:`,
+                  (error as Error).message,
+                );
+              })
+              .finally(() => {
+                if (i === numberOfPeople) {
+                  console.log("Sending done signal to worker...");
+                  worker.postMessage({ type: MainThreadMessageType.DONE });
+                }
+              });
           }
           break;
         case WorkerMessageType.DONE:
