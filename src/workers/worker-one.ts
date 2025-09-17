@@ -1,10 +1,11 @@
 import { parentPort } from "worker_threads";
-import { Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "../types.js";
+import { OrchestratorMessage, OrchestratorMessageType, Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "../types.js";
 
+
+const processingDelayInMs = parseInt(process.env.PROCESSING_DELAY_IN_MS || "1000");
 // Process individual person data
 const processPerson = async (person: Person): Promise<ProcessedPerson> =>
   new Promise((resolve) => {
-    console.log("Processing person:", person.name);
     const processed: ProcessedPerson = {
       name: person.name,
       height: parseInt(person.height) || 0,
@@ -25,62 +26,70 @@ const processPerson = async (person: Person): Promise<ProcessedPerson> =>
 
     setTimeout(() => {
       resolve(processed);
-    }, 10);
+    }, processingDelayInMs);
   });
 
 let processedCount = 0;
 
 // Send initial log to confirm worker is running
 parentPort?.postMessage({
-  type: WorkerMessageType.LOG,
+  type: WorkerMessageType.STARTED,
   message: "Worker started and ready to receive messages",
 });
 
+let awaitRemainingMessages: Promise<void>;
+let resolveRemainingMessages: () => void;
+
 // Listen for messages from the main thread
-parentPort?.on(WorkerEvent.MESSAGE, async (msg: WorkerMessage) => {
+parentPort?.on(WorkerEvent.MESSAGE, async (msg: OrchestratorMessage) => {
   // Send log message to main thread
   parentPort?.postMessage({
     type: WorkerMessageType.LOG,
     message: "Received message:",
     data: msg,
   });
-
-  if (msg.type === WorkerMessageType.PROCESS) {
-    // Send log message to main thread
-    parentPort?.postMessage({
-      type: WorkerMessageType.LOG,
-      message: `Processing person: ${(msg.data as Person).name}`,
-    });
-
-    // Process the person data
-    const processedPerson = await processPerson(msg.data as Person);
-    processedCount++;
-
-    // Send the processed result back
-    parentPort?.postMessage({
-      type: WorkerMessageType.RESULT,
-      data: processedPerson,
-    });
-
-    // Send progress update
-    parentPort?.postMessage({
-      type: WorkerMessageType.PROGRESS,
-      done: processedCount,
-      total: "unknown",
-    });
-  } else if (msg.type === WorkerMessageType.DONE) {
-    parentPort?.postMessage({
-      type: WorkerMessageType.LOG,
-      message: "Worker received done signal, waiting for remaining messages...",
-    });
-
-    // Give a moment for any remaining messages to be processed
-    setTimeout(() => {
+  switch (msg.type) {
+    case OrchestratorMessageType.PROCESS:
+      if (!awaitRemainingMessages) {
+        awaitRemainingMessages = new Promise((resolve) => {
+          resolveRemainingMessages = resolve;
+        });
+      }
+      parentPort?.postMessage({
+        type: WorkerMessageType.LOG,
+        message: `Processing person: ${(msg.data as Person).name} with delay of ${processingDelayInMs}ms`,
+      });
+      const processedPerson = await processPerson(msg.data as Person);
+      processedCount++;
+      parentPort?.postMessage({
+        type: WorkerMessageType.RESULT,
+        data: processedPerson,
+      });
+      parentPort?.postMessage({
+        type: WorkerMessageType.PROGRESS,
+        done: processedCount,
+        total: "unknown",
+      });
+      parentPort?.postMessage({
+        type: WorkerMessageType.LOG,
+        message: `Processed ${processedCount} of ${msg.totalToBeProcessed} people`,
+      });
+      if (msg.totalToBeProcessed && processedCount === msg.totalToBeProcessed) {
+        resolveRemainingMessages();
+      }
+      break;
+    case OrchestratorMessageType.DONE:
+      // The orchestrator is done sending us data, but we may not be done processing it all yet.
+      await awaitRemainingMessages;
+      parentPort?.postMessage({
+        type: WorkerMessageType.LOG,
+        message: "Worker received done signal, waiting for remaining messages...",
+      });
       parentPort?.postMessage({
         type: WorkerMessageType.LOG,
         message: `Worker finished processing ${processedCount} people`,
       });
       parentPort?.postMessage({ type: WorkerMessageType.DONE });
-    }, 100);
+      break;
   }
 });

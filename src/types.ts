@@ -35,10 +35,17 @@ export interface ProcessedPerson {
 // Message types for worker communication
 export interface WorkerMessage {
   type: WorkerMessageType;
-  data?: Person | ProcessedPerson | any;
+  data?: ProcessedPerson;
   message?: string;
   done?: number;
   total?: number | string;
+}
+
+export interface OrchestratorMessage {
+  type: OrchestratorMessageType;
+  data?: Person;
+  message?: string;
+  totalToBeProcessed?: number;
 }
 
 export enum WorkerEvent {
@@ -48,9 +55,15 @@ export enum WorkerEvent {
 }
 
 export enum WorkerMessageType {
+  STARTED = "started",
   PROCESS = "process",
   DONE = "done",
   LOG = "log",
   RESULT = "result",
   PROGRESS = "progress",
+}
+
+export enum OrchestratorMessageType {
+  DONE = "done",
+  PROCESS = "process",
 }

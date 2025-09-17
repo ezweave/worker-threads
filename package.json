@@ -10,6 +10,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "dotenv": "^17.2.2",
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {

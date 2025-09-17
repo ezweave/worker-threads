@@ -1,15 +1,31 @@
+
+import 'dotenv/config';
 import { Worker } from "worker_threads";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "./types";
+// This is a workaround to use the types file in the worker.
+import { OrchestratorMessageType, Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const numberOfPeopleFromENV = parseInt(process.env.NUMBER_OF_PEOPLE || "5");
+
+const getRandomDelayInMs = (): number => {
+  return Math.floor(Math.random() * 1000) + 1;
+};
+
 const getPersonFromSWAPI = async (personId: number): Promise<Person> => {
   const response = await fetch(`https://swapi.dev/api/people/${personId}`);
   const data = await response.json();
-  return data;
+  // Simulate long response times
+  return new Promise((resolve) => {
+    const delay = getRandomDelayInMs();
+    console.log(`Simulating long response time for person ${personId}... ${delay}ms`);
+    setTimeout(() => {
+      resolve(data);
+    }, delay);
+  });
 };
 
 const runJob = async (numberOfPeople: number): Promise<ProcessedPerson[]> => {
@@ -23,6 +39,25 @@ const runJob = async (numberOfPeople: number): Promise<ProcessedPerson[]> => {
     // Handle messages from worker
     worker.on(WorkerEvent.MESSAGE, (msg: WorkerMessage) => {
       switch (msg.type) {
+        case WorkerMessageType.STARTED:
+          console.log("Worker started, beginning data processing...");
+
+          for (let i = 1; i <= numberOfPeople; i++) {
+            getPersonFromSWAPI(i).then((person) => {
+              console.log(`Fetched person ${i}: ${person.name}`);
+
+              console.log(`Sending person ${i} to worker...`);
+              worker.postMessage({ type: OrchestratorMessageType.PROCESS, data: person, totalToBeProcessed: numberOfPeople });
+            }).catch((error) => {
+              console.log(`Failed to fetch person ${i}:`, (error as Error).message);
+            }).finally(() => {
+              if (i === numberOfPeople) {
+                console.log("Sending done signal to worker...");
+                worker.postMessage({ type: OrchestratorMessageType.DONE });
+              }
+            });
+          }
+          break;
         case WorkerMessageType.DONE:
           console.log("Worker finished processing");
           worker.terminate();
@@ -53,31 +88,10 @@ const runJob = async (numberOfPeople: number): Promise<ProcessedPerson[]> => {
         reject(new Error(`Worker stopped with exit code ${code}`));
       }
     });
-
-    console.log("Starting worker...");
-
-    setTimeout(async () => {
-      console.log("Worker started, beginning data processing...");
-
-      for (let i = 1; i <= numberOfPeople; i++) {
-        try {
-          const person = await getPersonFromSWAPI(i);
-          console.log(`Fetched person ${i}: ${person.name}`);
-
-          console.log(`Sending person ${i} to worker...`);
-          worker.postMessage({ type: "process", data: person });
-        } catch (error) {
-          console.log(`Failed to fetch person ${i}:`, (error as Error).message);
-        }
-      }
-
-      console.log("Sending done signal to worker...");
-      worker.postMessage({ type: "done" });
-    }, 100);
   });
 };
 
-runJob(5).then((result) => {
+runJob(numberOfPeopleFromENV).then((result) => {
   console.log("Final results:", result);
   console.log(`Processed ${result.length} people`);
 });
