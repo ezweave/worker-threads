@@ -18,7 +18,7 @@ This project shows how to do multi-threading in Node, which is achieved with [`w
 
 > [!WARNING]
 > This little project does not deal with _mutli-tenancy_. Which is to say, if you are trying to use a worker thread in a server application that services simultaneous request, you will have to either spawn a new thread per request (in Linux this calls `pthread_create` so it is a real POSIX thread), make sure you identify a request id on each message (or something to that effect), or use a pooling library, etc.
-
+x
 [Table of Contents](#table-of-contents)
 
 ## Getting Started
