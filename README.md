@@ -2,6 +2,10 @@
 
 A repository to test the use of worker threads. Because Node _is only single threaded by default_.
 
+<p align="center">
+  <img width="800" src="./img/ez-the-riveter.png" />
+</p>
+
 # Table Of Contents
 
 - [Overview](#overview)
