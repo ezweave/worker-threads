@@ -36,13 +36,11 @@ const runJob = async (numberOfPeople) => {
       }
     });
 
-    // Handle worker errors
     worker.on("error", (error) => {
       console.error("Worker error:", error);
       reject(error);
     });
 
-    // Handle worker exit
     worker.on("exit", (code) => {
       if (code !== 0) {
         console.error(`Worker stopped with exit code ${code}`);
@@ -50,10 +48,8 @@ const runJob = async (numberOfPeople) => {
       }
     });
 
-    // Start processing
     console.log("Starting worker...");
 
-    // Give the worker a moment to initialize
     setTimeout(async () => {
       console.log("Worker started, beginning data processing...");
 
