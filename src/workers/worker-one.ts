@@ -1,5 +1,5 @@
 import { parentPort } from "worker_threads";
-import { Person, ProcessedPerson, WorkerMessage } from "../types.js";
+import { Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "../types.js";
 
 // Process individual person data
 const processPerson = async (person: Person): Promise<ProcessedPerson> =>
@@ -32,23 +32,23 @@ let processedCount = 0;
 
 // Send initial log to confirm worker is running
 parentPort?.postMessage({
-  type: "log",
+  type: WorkerMessageType.LOG,
   message: "Worker started and ready to receive messages",
 });
 
 // Listen for messages from the main thread
-parentPort?.on("message", async (msg: WorkerMessage) => {
+parentPort?.on(WorkerEvent.MESSAGE, async (msg: WorkerMessage) => {
   // Send log message to main thread
   parentPort?.postMessage({
-    type: "log",
+    type: WorkerMessageType.LOG,
     message: "Received message:",
     data: msg,
   });
 
-  if (msg.type === "process") {
+  if (msg.type === WorkerMessageType.PROCESS) {
     // Send log message to main thread
     parentPort?.postMessage({
-      type: "log",
+      type: WorkerMessageType.LOG,
       message: `Processing person: ${(msg.data as Person).name}`,
     });
 
@@ -58,29 +58,29 @@ parentPort?.on("message", async (msg: WorkerMessage) => {
 
     // Send the processed result back
     parentPort?.postMessage({
-      type: "result",
+      type: WorkerMessageType.RESULT,
       data: processedPerson,
     });
 
     // Send progress update
     parentPort?.postMessage({
-      type: "progress",
+      type: WorkerMessageType.PROGRESS,
       done: processedCount,
       total: "unknown",
     });
-  } else if (msg.type === "done") {
+  } else if (msg.type === WorkerMessageType.DONE) {
     parentPort?.postMessage({
-      type: "log",
+      type: WorkerMessageType.LOG,
       message: "Worker received done signal, waiting for remaining messages...",
     });
 
     // Give a moment for any remaining messages to be processed
     setTimeout(() => {
       parentPort?.postMessage({
-        type: "log",
+        type: WorkerMessageType.LOG,
         message: `Worker finished processing ${processedCount} people`,
       });
-      parentPort?.postMessage({ type: "done" });
+      parentPort?.postMessage({ type: WorkerMessageType.DONE });
     }, 100);
   }
 });

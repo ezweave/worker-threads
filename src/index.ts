@@ -1,7 +1,7 @@
 import { Worker } from "worker_threads";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Person, ProcessedPerson, WorkerMessage } from "./types";
+import { Person, ProcessedPerson, WorkerEvent, WorkerMessage, WorkerMessageType } from "./types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,28 +21,33 @@ const runJob = async (numberOfPeople: number): Promise<ProcessedPerson[]> => {
     const worker = new Worker(path.resolve(__dirname, "workers/worker-one.js"));
 
     // Handle messages from worker
-    worker.on("message", (msg: WorkerMessage) => {
-      if (msg.type === "progress") {
-        console.log(`Progress: ${msg.done}/${msg.total}`);
-      } else if (msg.type === "result") {
-        console.log("Processed person:", (msg.data as ProcessedPerson).name);
-        results.push(msg.data as ProcessedPerson);
-        processedCount++;
-      } else if (msg.type === "log") {
-        console.log(`[WORKER] ${msg.message}`, msg.data || "");
-      } else if (msg.type === "done") {
-        console.log("Worker finished processing");
-        worker.terminate();
-        resolve(results);
+    worker.on(WorkerEvent.MESSAGE, (msg: WorkerMessage) => {
+      switch (msg.type) {
+        case WorkerMessageType.DONE:
+          console.log("Worker finished processing");
+          worker.terminate();
+          resolve(results);
+          break;
+        case WorkerMessageType.LOG:
+          console.log(`[WORKER] ${msg.message}`, msg.data || "");
+          break;
+        case WorkerMessageType.PROGRESS:
+          console.log(`Progress: ${msg.done}/${msg.total}`);
+          break;
+        case WorkerMessageType.RESULT:
+          console.log("Processed person:", (msg.data as ProcessedPerson).name);
+          results.push(msg.data as ProcessedPerson);
+          processedCount++;
+          break;
       }
     });
 
-    worker.on("error", (error: Error) => {
+    worker.on(WorkerEvent.ERROR, (error: Error) => {
       console.error("Worker error:", error);
       reject(error);
     });
 
-    worker.on("exit", (code: number) => {
+    worker.on(WorkerEvent.EXIT, (code: number) => {
       if (code !== 0) {
         console.error(`Worker stopped with exit code ${code}`);
         reject(new Error(`Worker stopped with exit code ${code}`));
