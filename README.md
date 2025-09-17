@@ -16,6 +16,9 @@ A repository to test the use of worker threads. Because Node _is only single thr
 
 This project shows how to do multi-threading in Node, which is achieved with [`worker_threads`](https://nodejs.org/api/worker_threads.html). A worker thread is a completely seperate thread on which you can perform operations and leave the main thread's **[Event Loop](https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick)** free to handle I/O events as they are raised by the underlying OS.
 
+> [!WARNING]
+> This little project does not deal with _mutli-tenancy_. Which is to say, if you are trying to use a worker thread in a server application that services simultaneous request, you will have to either spawn a new thread per request (in Linux this calls `pthread_create` so it is a real POSIX thread), make sure you identify a request id on each message (or something to that effect), or use a pooling library, etc.
+
 [Table of Contents](#table-of-contents)
 
 ## Getting Started
